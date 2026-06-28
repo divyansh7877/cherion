@@ -90,7 +90,7 @@ async function run() {
   try {
     const r = await fetch(API + "/visualize", {
       method: "POST", headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ query, max_records: 300 })
+      body: JSON.stringify({ query, max_records: 1000 })
     });
     if (!r.ok) throw new Error(await r.text());
     render(await r.json());
@@ -161,7 +161,8 @@ function vlLine(v, host) {
 function vlHistogram(v, host) {
   const e = v.encoding;
   vlEmbed(host, { data:{values:v.data}, mark:"bar", width:"container", height:340,
-    encoding:{ x:{field:"bin_label", type:"ordinal", title:ch(e.x), sort:null},
+    encoding:{ x:{field:"bin_label", type:"ordinal", title:ch(e.x),
+                  sort:{field:"bin_start"}},
                y:{field:e.y.field, type:"quantitative", title:ch(e.y)} }});
 }
 function vlScatter(v, host) {
