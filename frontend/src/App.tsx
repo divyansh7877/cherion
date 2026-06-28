@@ -60,12 +60,13 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <div className="brand">
-          <span className="logo">◈</span> Cherion
+        <div>
+          <div className="brand">Cherion</div>
+          <div className="header-sub">
+            Natural-language clinical-trial questions, answered as cited visualizations.
+          </div>
         </div>
-        <div className="tagline">
-          Natural-language clinical-trial questions → cited visualizations · Data: ClinicalTrials.gov
-        </div>
+        <div className="header-tag">ClinicalTrials.gov · v0.1</div>
       </header>
 
       <main>

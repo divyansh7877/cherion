@@ -1,5 +1,5 @@
 import EChart from "../EChart";
-import { axisStyle, baseOption, tokens } from "../../theme";
+import { axisStyle, baseOption, chartAccent } from "../../theme";
 import type { CitationSelection, Datum, Visualization } from "../../types";
 
 interface Props {
@@ -30,7 +30,7 @@ export default function Scatter({ viz, onSelect }: Props) {
         type: "scatter" as const,
         symbolSize: 9,
         data: rows.map((r) => [Number(r[xf]), Number(r[yf])]),
-        itemStyle: { color: "rgba(68,147,248,0.6)", borderColor: tokens.accent },
+        itemStyle: { color: "rgba(79,157,255,0.55)", borderColor: chartAccent },
       },
     ],
   };

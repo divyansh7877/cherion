@@ -1,5 +1,5 @@
 import EChart from "../EChart";
-import { axisStyle, baseOption, tokens } from "../../theme";
+import { axisStyle, baseOption, chartAccent } from "../../theme";
 import type { CitationSelection, Datum, Visualization } from "../../types";
 
 interface Props {
@@ -32,8 +32,8 @@ export default function Histogram({ viz, onSelect }: Props) {
         type: "bar" as const,
         data: rows.map((r) => Number(r[yf])),
         barCategoryGap: "2%",
-        itemStyle: { color: tokens.accent },
-        emphasis: { itemStyle: { color: "#6aa9fa" } },
+        itemStyle: { color: chartAccent },
+        emphasis: { itemStyle: { color: "#7fb6ff" } },
       },
     ],
   };

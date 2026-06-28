@@ -1,50 +1,53 @@
-// Design tokens + ECharts base options shared across chart components.
+// Design tokens + ECharts base options.
+// Concept: monochrome "clinical instrument" UI chrome, deliberately colorful data.
 
 export const tokens = {
-  bg: "#0b0f14",
-  panel: "#141b24",
-  panelAlt: "#0f151d",
-  line: "#243040",
-  fg: "#e6edf3",
-  muted: "#8b98a5",
-  accent: "#4493f8",
-  warn: "#f0b429",
+  bg: "#0a0a0b",
+  fg: "#f4f4f5",
+  muted: "#8a8a90",
+  line: "rgba(255,255,255,0.08)",
 };
 
-// Per-entity colors for the network graph + a categorical palette for series.
-export const groupColors: Record<string, string> = {
-  drug: "#4493f8",
-  condition: "#3fb950",
-  sponsor: "#db61a2",
-  site: "#f0b429",
-};
+const MONO = "'IBM Plex Mono', ui-monospace, monospace";
 
+// Primary color for single-series charts + map markers (the data is the color).
+export const chartAccent = "#4f9dff";
+
+// Vivid, varied palette — the color lives in the charts, not the UI.
 export const palette = [
-  "#4493f8",
-  "#3fb950",
-  "#db61a2",
-  "#f0b429",
-  "#a371f7",
-  "#f78166",
+  "#4f9dff",
+  "#3ddc97",
+  "#ffb454",
+  "#ff6b6b",
+  "#c792ea",
   "#56d4dd",
-  "#e3b341",
+  "#f78c6c",
+  "#e5c07b",
 ];
 
-// Shared ECharts styling so every chart looks consistent on the dark theme.
+// Per-entity colors for the network graph.
+export const groupColors: Record<string, string> = {
+  drug: "#4f9dff",
+  condition: "#3ddc97",
+  sponsor: "#c792ea",
+  site: "#ffb454",
+};
+
+// Shared ECharts styling: monochrome chrome (mono font, gray axes), colorful series.
 export const baseOption = {
   backgroundColor: "transparent",
-  textStyle: { color: tokens.fg, fontFamily: "ui-sans-serif, system-ui, sans-serif" },
+  textStyle: { color: "#c9c9cf", fontFamily: MONO, fontSize: 11 },
   grid: { left: 56, right: 24, top: 28, bottom: 64, containLabel: true },
   tooltip: {
-    backgroundColor: tokens.panel,
-    borderColor: tokens.line,
-    textStyle: { color: tokens.fg },
+    backgroundColor: "#161617",
+    borderColor: "rgba(255,255,255,0.12)",
+    textStyle: { color: "#f4f4f5", fontFamily: MONO, fontSize: 12 },
   },
 };
 
 export const axisStyle = {
-  axisLine: { lineStyle: { color: tokens.line } },
-  axisLabel: { color: tokens.muted },
-  splitLine: { lineStyle: { color: tokens.line, opacity: 0.4 } },
-  nameTextStyle: { color: tokens.muted },
+  axisLine: { lineStyle: { color: "rgba(255,255,255,0.16)" } },
+  axisLabel: { color: "#8a8a90", fontFamily: MONO, fontSize: 11 },
+  splitLine: { lineStyle: { color: "rgba(255,255,255,0.06)" } },
+  nameTextStyle: { color: "#8a8a90", fontFamily: MONO, fontSize: 11 },
 };

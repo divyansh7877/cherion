@@ -1,5 +1,5 @@
 import EChart from "../EChart";
-import { axisStyle, baseOption, tokens } from "../../theme";
+import { axisStyle, baseOption, chartAccent } from "../../theme";
 import type { CitationSelection, Datum, Visualization } from "../../types";
 
 interface Props {
@@ -34,9 +34,9 @@ export default function TimeSeries({ viz, onSelect }: Props) {
         showSymbol: true,
         symbolSize: 7,
         data: rows.map((r) => Number(r[yf])),
-        lineStyle: { color: tokens.accent, width: 2 },
-        itemStyle: { color: tokens.accent },
-        areaStyle: { color: "rgba(68,147,248,0.15)" },
+        lineStyle: { color: chartAccent, width: 2 },
+        itemStyle: { color: chartAccent },
+        areaStyle: { color: "rgba(79,157,255,0.16)" },
       },
     ],
   };

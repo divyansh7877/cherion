@@ -1,6 +1,6 @@
 import { MapContainer, TileLayer, CircleMarker, Tooltip } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { tokens } from "../theme";
+import { chartAccent } from "../theme";
 import { STUDY_URL } from "../types";
 import type { CitationSelection, GeoData, Visualization } from "../types";
 
@@ -31,7 +31,7 @@ export default function GeoMap({ viz, onSelect }: Props) {
             key={i}
             center={[p.lat, p.lng]}
             radius={4 + 12 * (p.trial_count / max)}
-            pathOptions={{ color: tokens.accent, fillColor: tokens.accent, fillOpacity: 0.5, weight: 1 }}
+            pathOptions={{ color: chartAccent, fillColor: chartAccent, fillOpacity: 0.5, weight: 1 }}
             eventHandlers={{
               click: () =>
                 onSelect({

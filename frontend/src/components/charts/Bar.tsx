@@ -1,5 +1,5 @@
 import EChart from "../EChart";
-import { axisStyle, baseOption, tokens } from "../../theme";
+import { axisStyle, baseOption, palette } from "../../theme";
 import type { CitationSelection, Datum, Visualization } from "../../types";
 
 interface Props {
@@ -33,9 +33,10 @@ export default function Bar({ viz, onSelect }: Props) {
     series: [
       {
         type: "bar" as const,
-        data: rows.map((r) => Number(r[yf])),
-        itemStyle: { color: tokens.accent, borderRadius: [4, 4, 0, 0] },
-        emphasis: { itemStyle: { color: "#6aa9fa" } },
+        data: rows.map((r, i) => ({
+          value: Number(r[yf]),
+          itemStyle: { color: palette[i % palette.length], borderRadius: [3, 3, 0, 0] },
+        })),
       },
     ],
   };
