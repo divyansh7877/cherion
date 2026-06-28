@@ -22,7 +22,7 @@ body,
   height: 100%;
 }
 body {
-  background: radial-gradient(1200px 600px at 50% -10%, #11202f 0%, var(--bg) 55%);
+  background: var(--bg);
   color: var(--fg);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 14px;
