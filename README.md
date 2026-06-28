@@ -54,16 +54,34 @@ also works.
 
 ## Run
 
+### Backend
 ```bash
-uvicorn app.main:app --reload --port 8000
-# open http://localhost:8000  -> interactive demo
+uvicorn app.main:app --reload --port 8077
+# API at http://localhost:8077  (POST /visualize, GET /health)
+```
+
+### Frontend (React + TypeScript + Vite)
+
+The demo is a typed React SPA using **Apache ECharts** (charts + network graph) and
+**Leaflet** (geographic map), with click-to-cite drill-down on every datum.
+
+```bash
+cd frontend
+npm install
+npm run dev        # dev server on http://localhost:5173 (proxies /visualize to :8077)
+```
+
+For a production-style demo, build once and let FastAPI serve it:
+```bash
+cd frontend && npm run build      # emits frontend/dist
+uvicorn app.main:app --port 8077  # open http://localhost:8077
 ```
 
 ### Example request
 
 ```bash
-curl -s localhost:8000/visualize -H 'Content-Type: application/json' \
-  -d '{"query":"Trials by phase for pembrolizumab","max_records":300}' | jq
+curl -s localhost:8077/visualize -H 'Content-Type: application/json' \
+  -d '{"query":"Trials by phase for pembrolizumab","max_records":1000}' | jq
 ```
 
 ### Example queries (one per viz type)
@@ -131,7 +149,7 @@ app/
   spec_builder.py      # plan + rows -> encoding + data
   pipeline.py          # request -> plan -> fetch -> aggregate -> spec
   main.py              # FastAPI app
-frontend/index.html    # spec-driven demo (Vega-Lite + vis-network + Leaflet)
+frontend/              # React + TS + Vite SPA (ECharts + Leaflet); types.ts mirrors SCHEMA.md
 tests/                 # fixtures + unit/e2e tests
 SCHEMA.md              # frontend rendering contract
 ```

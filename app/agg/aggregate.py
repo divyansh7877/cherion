@@ -268,16 +268,36 @@ def _fmt(n: int) -> str:
 
 
 def aggregate_scatter(studies: list[dict]) -> tuple[list[dict], list[str]]:
-    """One point per study: enrollment (x) vs duration in days (y)."""
+    """One point per study: enrollment (x) vs duration in days (y).
+
+    Enrollment/duration are extremely right-skewed (a few trials report millions of
+    participants or multi-decade spans). We drop points beyond the 99th percentile
+    of either axis so the bulk is legible, and disclose how many were excluded.
+    """
     notes: list[str] = []
-    rows = []
+    points: list[tuple[str, int, int]] = []
     skipped = 0
     for study in studies:
         nct = ex.nct_id(study)
         enroll = ex.enrollment_count(study)
         dur = ex.duration_days(study)
-        if enroll is None or dur is None:
+        if enroll is None or dur is None or dur < 0:
             skipped += 1
+            continue
+        points.append((nct, enroll, dur))
+
+    rows: list[dict] = []
+    if not points:
+        if skipped:
+            notes.append(f"{skipped} trials skipped (missing enrollment or dates).")
+        return rows, notes
+
+    x_cap = _percentile(sorted(p[1] for p in points), 0.99)
+    y_cap = _percentile(sorted(p[2] for p in points), 0.99)
+    outliers = 0
+    for nct, enroll, dur in points:
+        if enroll > x_cap or dur > y_cap:
+            outliers += 1
             continue
         rows.append(
             {
@@ -296,4 +316,9 @@ def aggregate_scatter(studies: list[dict]) -> tuple[list[dict], list[str]]:
         )
     if skipped:
         notes.append(f"{skipped} trials skipped (missing enrollment or dates).")
+    if outliers:
+        notes.append(
+            f"{outliers} extreme outliers beyond the 99th percentile "
+            f"(enrollment > {_fmt(x_cap)} or duration > {_fmt(y_cap)} days) excluded for readability."
+        )
     return rows, notes
