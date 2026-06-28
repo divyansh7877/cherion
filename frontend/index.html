@@ -7,6 +7,7 @@
   <!-- Renderers: a generic spec-driven renderer proving the schema is self-describing -->
   <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-themes@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
   <script src="https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -73,6 +74,13 @@ EXAMPLES.forEach(t => {
 document.getElementById("go").onclick = run;
 document.getElementById("q").addEventListener("keydown", e => { if (e.key === "Enter") run(); });
 
+// Auto-run from ?q=... (shareable links); otherwise load a default example.
+window.addEventListener("DOMContentLoaded", () => {
+  const q = new URLSearchParams(location.search).get("q") || EXAMPLES[0];
+  document.getElementById("q").value = q;
+  run();
+});
+
 async function run() {
   const query = document.getElementById("q").value.trim();
   if (!query) return;
@@ -117,7 +125,16 @@ function render(resp) {
   card.appendChild(det);
 }
 
-function vlEmbed(host, spec) { vegaEmbed(host, spec, {actions:false, theme:"dark"}); }
+function vlEmbed(host, spec) {
+  // width:"container" can measure 0 before layout settles — set an explicit width.
+  if (spec.width === "container") {
+    const w = host.clientWidth || (host.parentElement && host.parentElement.clientWidth) || 900;
+    spec.width = Math.max(320, w - 8);
+  }
+  spec.background = "transparent";
+  vegaEmbed(host, spec, {actions:false, theme:"dark", renderer:"svg"})
+    .catch(e => { host.innerHTML = '<div class="warn">Chart render error: '+e.message+'</div>'; });
+}
 function ch(c){ return c ? c.title || c.field : ""; }
 
 function vlBar(v, host) {
