@@ -52,10 +52,15 @@ def build_response(
     filters_applied: dict,
     exact_rows: list[dict] | None = None,
     exact_notes: list[str] | None = None,
+    aggregated_override: int | None = None,
 ) -> VisualizeResponse:
     """Build the response. If ``exact_rows`` is provided (faceted exact counts for
     bar/grouped), use them instead of aggregating the sampled records — the counts
-    then reflect the full population, not a sample."""
+    then reflect the full population, not a sample.
+
+    ``aggregated_override`` sets ``trials_aggregated`` explicitly (and drives the
+    sampling warning) for paths that supply pre-built rows from sampled records,
+    e.g. the non-facetable cohort fallback."""
     exact = exact_rows is not None
     notes: list[str] = list(exact_notes or [])
     if plan.interpretation:
@@ -71,9 +76,7 @@ def build_response(
         if exact:
             rows = exact_rows
         else:
-            rows, n = agg.aggregate_categorical(
-                studies, dim, plan.metric, value_field, limit, sort_desc
-            )
+            rows, n = agg.aggregate_categorical(studies, dim, plan.metric, value_field, limit, sort_desc)
             notes += n
         # For ordered dims like year/phase keep natural order when not count-sorted
         encoding = Encoding(
@@ -82,6 +85,19 @@ def build_response(
         )
         data: list | dict = rows
         title = f"Trials by {_DIM_TITLE.get(dim, dim.value)}"
+
+    elif viz == VizType.grouped_bar and plan.cohorts:
+        # Comparison cohorts: one series per cohort (color field = "series").
+        primary = plan.dimension or Dimension.phase
+        rows = exact_rows if exact else []
+        encoding = Encoding(
+            x=Channel(field=primary.value, type="nominal", title=_DIM_TITLE.get(primary)),
+            y=Channel(field="trial_count", type="quantitative", title="Number of Trials"),
+            color=Channel(field="series", type="nominal", title="Cohort"),
+        )
+        data = rows
+        labels = " vs. ".join(c.label for c in plan.cohorts)
+        title = f"{labels} — Trials by {_DIM_TITLE.get(primary)}"
 
     elif viz == VizType.grouped_bar:
         primary = plan.dimension or Dimension.phase
@@ -163,7 +179,10 @@ def build_response(
         sorting = "value desc" if sort_desc else "value asc"
 
     # Exact (faceted) results cover the full population; sampled results don't.
-    aggregated = total if exact else len(studies)
+    if aggregated_override is not None:
+        aggregated = aggregated_override
+    else:
+        aggregated = total if exact else len(studies)
 
     meta = Meta(
         filters=filters_applied,
@@ -173,7 +192,11 @@ def build_response(
         units="trials" if plan.metric == Metric.count else "participants",
         sorting=sorting,
         time_granularity=plan.time_granularity.value if viz == VizType.time_series else None,
-        grouping=plan.secondary_dimension.value if plan.secondary_dimension else None,
+        grouping=(
+            "cohort comparison"
+            if plan.cohorts
+            else (plan.secondary_dimension.value if plan.secondary_dimension else None)
+        ),
         notes=notes,
         warnings=_warnings(total, aggregated),
     )

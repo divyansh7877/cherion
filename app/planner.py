@@ -12,6 +12,7 @@ import os
 from app.schemas import (
     PHASES,
     STATUSES,
+    Cohort,
     Dimension,
     EntityType,
     Filters,
@@ -39,6 +40,17 @@ Guidance:
   - network_graph: relationships/co-occurrence between entities (drugs, conditions,
     sponsors, sites). Set network.node_types and network.edge_relation like "drug-condition".
   - geo_map: geographic distribution by country/location.
+- COMPARISONS ("A vs B", "compare X and Y", "X versus Y"): use `cohorts` — a list of
+  named groups, one per thing being compared. Each cohort has a `label` and its own
+  `filters`. Set `dimension` to what you break the comparison down BY (phase by default,
+  or status/study_type/sponsor_class). Put SHARED constraints in the top-level `filters`
+  and the DIFFERING constraint in each cohort. Leave secondary_dimension unset.
+  Example — "Compare phases for Aspirin vs Clopidogrel":
+    dimension=phase, cohorts=[{label:"Aspirin", filters:{drug_name:"Aspirin"}},
+    {label:"Clopidogrel", filters:{drug_name:"Clopidogrel"}}].
+  Example — "Compare recruiting status of Pfizer vs Moderna trials":
+    dimension=status, cohorts=[{label:"Pfizer", filters:{sponsor:"Pfizer"}},
+    {label:"Moderna", filters:{sponsor:"Moderna"}}].
 - Put search constraints in filters (drug_name, condition, sponsor, country, phase[],
   status[], start_year, end_year, term).
 - Use CT.gov enums exactly. Phases: EARLY_PHASE1, PHASE1, PHASE2, PHASE3, PHASE4, NA.
@@ -118,16 +130,40 @@ def _apply_overrides(plan: QueryPlan, request: VisualizeRequest) -> QueryPlan:
     return plan
 
 
+def _cohort_has_filter(cohort: Cohort) -> bool:
+    """A cohort only earns a series if it actually narrows the population."""
+    f = cohort.filters
+    return any([f.drug_name, f.condition, f.sponsor, f.country, f.term, f.phase, f.status, f.start_year, f.end_year])
+
+
 def repair_plan(plan: QueryPlan) -> QueryPlan:
     """Clamp illegal combinations so the executor always gets a runnable plan."""
-    # Validate enums in filters.
+    # Validate enums in filters (top-level and per-cohort).
     plan.filters.phase = [p for p in plan.filters.phase if p in PHASES]
     plan.filters.status = [s for s in plan.filters.status if s in STATUSES]
+
+    # Comparison cohorts: an 'A vs B' question becomes a grouped bar with one
+    # series per cohort, split by `dimension`. Needs >= 2 well-formed cohorts.
+    if plan.cohorts is not None:
+        valid = [c for c in plan.cohorts if c.label and _cohort_has_filter(c)]
+        for c in valid:
+            c.filters.phase = [p for p in c.filters.phase if p in PHASES]
+            c.filters.status = [s for s in c.filters.status if s in STATUSES]
+        if len(valid) >= 2:
+            plan.cohorts = valid
+            plan.viz_type = VizType.grouped_bar
+            plan.secondary_dimension = None
+            # Cohorts are compared over a facetable enum; phase is the sane default.
+            if plan.dimension is None or plan.dimension == Dimension.enrollment:
+                plan.dimension = Dimension.phase
+        else:
+            plan.cohorts = None
 
     if plan.viz_type == VizType.grouped_bar:
         if plan.dimension is None:
             plan.dimension = Dimension.phase
-        if plan.secondary_dimension is None:
+        # Without cohorts a grouped bar needs a second categorical dimension.
+        if plan.secondary_dimension is None and not plan.cohorts:
             plan.secondary_dimension = Dimension.status
 
     elif plan.viz_type == VizType.time_series:
@@ -163,6 +199,73 @@ def repair_plan(plan: QueryPlan) -> QueryPlan:
 # --------------------------------------------------------------------------- #
 
 
+_COMPARE_STOP = {
+    "compare",
+    "comparing",
+    "phases",
+    "phase",
+    "for",
+    "of",
+    "in",
+    "trials",
+    "studies",
+    "involving",
+    "between",
+    "the",
+    "show",
+    "status",
+    "study",
+    "type",
+    "types",
+    "drug",
+    "drugs",
+    "sponsor",
+    "sponsors",
+    "condition",
+    "conditions",
+    "disease",
+}
+
+
+def _extract_comparison(query: str) -> tuple[str, str] | None:
+    """Best-effort 'A vs B' entity extraction for the offline heuristic."""
+    import re
+
+    m = re.search(
+        r"([A-Za-z0-9][\w\- ]*?)\s+(?:vs\.?|versus)\s+([A-Za-z0-9][\w\- ]*)",
+        query,
+        re.IGNORECASE,
+    )
+    if not m:
+        return None
+
+    def _left(s: str) -> str:
+        # Keep the trailing run of entity words (stop at the connective before it).
+        words = re.findall(r"[A-Za-z0-9\-]+", s)
+        keep: list[str] = []
+        for w in reversed(words):
+            if w.lower() in _COMPARE_STOP and keep:
+                break
+            keep.append(w)
+        keep.reverse()
+        while keep and keep[0].lower() in _COMPARE_STOP:
+            keep.pop(0)
+        return " ".join(keep).strip()
+
+    def _right(s: str) -> str:
+        words = re.findall(r"[A-Za-z0-9\-]+", s)
+        out: list[str] = []
+        for w in words:
+            if w.lower() in {"trials", "studies", "grouped", "over", "across", "by"} and out:
+                break
+            out.append(w)
+        cleaned = [w for w in out if w.lower() not in _COMPARE_STOP]
+        return " ".join(cleaned or out).strip()
+
+    a, b = _left(m.group(1)), _right(m.group(2))
+    return (a, b) if a and b else None
+
+
 def _heuristic_plan(query: str) -> QueryPlan:
     import re
 
@@ -176,10 +279,48 @@ def _heuristic_plan(query: str) -> QueryPlan:
     if "recruiting" in q:
         filters.status.append("RECRUITING")
 
+    # comparison ("A vs B") -> cohort grouped bar (mirrors the LLM cohorts path).
+    comp = _extract_comparison(query)
+    if comp:
+        a, b = comp
+
+        def _mk(v: str) -> Filters:
+            if "sponsor" in q:
+                return Filters(sponsor=v)
+            if "condition" in q or "disease" in q:
+                return Filters(condition=v)
+            return Filters(drug_name=v)
+
+        if "status" in q:
+            dim = Dimension.status
+        elif "study type" in q:
+            dim = Dimension.study_type
+        else:
+            dim = Dimension.phase
+        return QueryPlan(
+            viz_type=VizType.grouped_bar,
+            dimension=dim,
+            cohorts=[Cohort(label=a, filters=_mk(a)), Cohort(label=b, filters=_mk(b))],
+            filters=filters,
+            interpretation=f"Heuristic plan: comparing {a} vs {b} by {dim.value}.",
+        )
+
     # crude topic extraction: text after "for"/"about" becomes a free-text term.
     # ("of"/"on" are too noisy — they precede things like "of enrollment size").
-    _NON_TOPIC = {"enrollment", "size", "trials", "studies", "trial", "study",
-                  "number", "distribution", "phase", "status", "sponsor", "sponsors"}
+    _NON_TOPIC = {
+        "enrollment",
+        "size",
+        "trials",
+        "studies",
+        "trial",
+        "study",
+        "number",
+        "distribution",
+        "phase",
+        "status",
+        "sponsor",
+        "sponsors",
+    }
     m = re.search(r"\b(?:for|about)\s+([a-z0-9][a-z0-9 \-]{2,40})", q)
     if m:
         term = m.group(1).strip()

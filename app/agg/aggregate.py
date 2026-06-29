@@ -116,9 +116,7 @@ def aggregate_grouped(
     return rows, notes
 
 
-def aggregate_time_series(
-    studies: list[dict], granularity: str = "year"
-) -> tuple[list[dict], list[str]]:
+def aggregate_time_series(studies: list[dict], granularity: str = "year") -> tuple[list[dict], list[str]]:
     """Count studies per start-date bucket (year or YYYY-MM)."""
     notes: list[str] = []
     contributors: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
@@ -127,12 +125,7 @@ def aggregate_time_series(
 
     for study in studies:
         nct = ex.nct_id(study)
-        date = (
-            study.get("protocolSection", {})
-            .get("statusModule", {})
-            .get("startDateStruct", {})
-            .get("date")
-        )
+        date = study.get("protocolSection", {}).get("statusModule", {}).get("startDateStruct", {}).get("date")
         if not date or not date[:4].isdigit():
             missing += 1
             continue
@@ -155,9 +148,7 @@ def aggregate_time_series(
     return rows, notes
 
 
-def aggregate_histogram(
-    studies: list[dict], bins: int = 10
-) -> tuple[list[dict], list[str]]:
+def aggregate_histogram(studies: list[dict], bins: int = 10) -> tuple[list[dict], list[str]]:
     """Bin enrollment counts into a histogram. Returns bucket rows."""
     notes: list[str] = []
     field = "protocolSection.designModule.enrollmentInfo.count"

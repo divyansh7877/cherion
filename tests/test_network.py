@@ -13,9 +13,7 @@ def test_network_builds_nodes_and_edges(pembro_studies):
 
 
 def test_nodes_have_groups_and_citations(pembro_studies):
-    graph, _ = net.build_network(
-        pembro_studies, [EntityType.drug, EntityType.condition], "drug-condition"
-    )
+    graph, _ = net.build_network(pembro_studies, [EntityType.drug, EntityType.condition], "drug-condition")
     groups = {n["group"] for n in graph["nodes"]}
     assert groups <= {"drug", "condition"}
     for n in graph["nodes"]:
@@ -24,9 +22,7 @@ def test_nodes_have_groups_and_citations(pembro_studies):
 
 
 def test_edges_reference_real_trials_and_weight(pembro_studies):
-    graph, _ = net.build_network(
-        pembro_studies, [EntityType.drug, EntityType.condition], "drug-condition"
-    )
+    graph, _ = net.build_network(pembro_studies, [EntityType.drug, EntityType.condition], "drug-condition")
     for e in graph["edges"]:
         assert e["weight"] >= 1
         assert e["weight"] == e["total_contributors"]

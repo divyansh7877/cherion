@@ -118,9 +118,19 @@ class VisualizeRequest(BaseModel):
 
 class NetworkSpec(BaseModel):
     node_types: list[EntityType] = Field(default_factory=list)
-    edge_relation: str | None = Field(
-        None, description="e.g. 'drug-condition', 'sponsor-condition', 'site-sponsor'"
-    )
+    edge_relation: str | None = Field(None, description="e.g. 'drug-condition', 'sponsor-condition', 'site-sponsor'")
+
+
+class Cohort(BaseModel):
+    """A named comparison group: a display label plus the filters that define it.
+
+    Used for 'A vs B' questions (e.g. 'Aspirin vs Clopidogrel'). Each cohort
+    becomes one series of a grouped bar, split by the plan's ``dimension``.
+    Filters here are layered on top of (and override) the plan-level filters.
+    """
+
+    label: str = Field(..., description="Series label shown in the legend, e.g. 'Aspirin'")
+    filters: Filters = Field(default_factory=Filters)
 
 
 class QueryPlan(BaseModel):
@@ -134,11 +144,19 @@ class QueryPlan(BaseModel):
     filters: Filters = Field(default_factory=Filters)
     time_granularity: TimeGranularity = TimeGranularity.year
     network: NetworkSpec | None = None
+    cohorts: list[Cohort] | None = Field(
+        None,
+        description=(
+            "Named comparison cohorts for 'A vs B' questions (e.g. 'Aspirin' vs "
+            "'Clopidogrel'). When set, the result is a grouped bar with one series "
+            "per cohort, split by `dimension` (default: phase). Put the shared "
+            "constraints in the top-level `filters` and the differing constraint in "
+            "each cohort's `filters`."
+        ),
+    )
     sort: str | None = Field(None, description="e.g. 'y_desc', 'x_asc'")
     limit: int | None = Field(None, description="Max categories/nodes to return")
-    interpretation: str = Field(
-        "", description="One-sentence restatement of how the query was understood"
-    )
+    interpretation: str = Field("", description="One-sentence restatement of how the query was understood")
 
 
 # --------------------------------------------------------------------------- #

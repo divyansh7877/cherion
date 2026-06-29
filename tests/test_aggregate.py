@@ -8,8 +8,9 @@ def test_categorical_counts_sum_to_unique_study_group_pairs(pembro_studies):
     # every study contributes exactly one phase group (phases defaults to NA),
     # and a study counts once per distinct phase label.
     total = sum(r["trial_count"] for r in rows)
-    expected = len({(ex.nct_id(s), lbl) for s in pembro_studies
-                    for lbl, _, _ in ex.extract_dimension(s, Dimension.phase)})
+    expected = len(
+        {(ex.nct_id(s), lbl) for s in pembro_studies for lbl, _, _ in ex.extract_dimension(s, Dimension.phase)}
+    )
     assert total == expected
 
 
@@ -30,9 +31,7 @@ def test_categorical_sorted_desc(pembro_studies):
 
 
 def test_limit_truncates_and_notes(diabetes_studies):
-    rows, notes = agg.aggregate_categorical(
-        diabetes_studies, Dimension.sponsor, limit=5
-    )
+    rows, notes = agg.aggregate_categorical(diabetes_studies, Dimension.sponsor, limit=5)
     assert len(rows) <= 5
     assert any("top 5" in n for n in notes)
 

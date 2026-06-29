@@ -59,9 +59,7 @@ FACETABLE: dict[Dimension, FacetDef] = {
     Dimension.phase: FacetDef("Phase", list(_PHASE_LABELS), _PHASE_LABELS),
     Dimension.status: FacetDef("OverallStatus", list(_STATUS_LABELS), _STATUS_LABELS),
     Dimension.study_type: FacetDef("StudyType", list(_STUDY_TYPE_LABELS), _STUDY_TYPE_LABELS),
-    Dimension.sponsor_class: FacetDef(
-        "LeadSponsorClass", list(_SPONSOR_CLASS_LABELS), _SPONSOR_CLASS_LABELS
-    ),
+    Dimension.sponsor_class: FacetDef("LeadSponsorClass", list(_SPONSOR_CLASS_LABELS), _SPONSOR_CLASS_LABELS),
 }
 
 # Max number of facet queries we're willing to issue for one request (keeps even

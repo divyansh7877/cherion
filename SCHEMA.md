@@ -116,6 +116,15 @@ The value field equals `encoding.y.field` (`trial_count`, `enrollment_sum`, or `
 { "phase": "Phase 2", "status": "Recruiting", "trial_count": 40, "references": [...] }
 ```
 
+**Comparison variant ("A vs B" questions).** When the query compares named cohorts
+(e.g. "Aspirin vs Clopidogrel"), the result is a `grouped_bar` whose series are the
+cohorts: `color.field` is the literal `"series"` and `meta.grouping` is
+`"cohort comparison"`. Rows are keyed by `encoding.x.field` + `series` — the frontend
+reads `encoding.color.field` dynamically, so no special-casing is needed.
+```jsonc
+{ "phase": "Phase 2", "series": "Aspirin", "trial_count": 80, "references": [...] }
+```
+
 ### `time_series`
 `encoding`: `x` = `period` (temporal), `y` = `trial_count`. `data` sorted ascending by period.
 ```jsonc

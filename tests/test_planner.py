@@ -1,5 +1,6 @@
-from app.planner import _heuristic_plan, repair_plan
+from app.planner import _extract_comparison, _heuristic_plan, repair_plan
 from app.schemas import (
+    Cohort,
     Dimension,
     EntityType,
     Filters,
@@ -74,3 +75,68 @@ def test_network_edge_relation_inferred_from_node_types():
         network=NetworkSpec(node_types=[EntityType.sponsor, EntityType.condition]),
     )
     assert repair_plan(plan).network.edge_relation == "sponsor-condition"
+
+
+# --------------------------------------------------------------------------- #
+# Comparison cohorts ("A vs B")
+# --------------------------------------------------------------------------- #
+
+
+def test_extract_comparison_strips_lead_words():
+    assert _extract_comparison("Compare phases for trials involving Aspirin vs Clopidogrel.") == (
+        "Aspirin",
+        "Clopidogrel",
+    )
+    assert _extract_comparison("Pembrolizumab versus Nivolumab by phase") == (
+        "Pembrolizumab",
+        "Nivolumab",
+    )
+    assert _extract_comparison("trials by phase") is None
+
+
+def test_heuristic_builds_cohorts_for_vs_query():
+    plan = _heuristic_plan("Compare phases for Aspirin vs Clopidogrel")
+    assert plan.viz_type == VizType.grouped_bar
+    assert plan.dimension == Dimension.phase
+    assert [c.label for c in plan.cohorts] == ["Aspirin", "Clopidogrel"]
+    assert plan.cohorts[0].filters.drug_name == "Aspirin"
+
+
+def test_repair_cohorts_force_grouped_bar_and_clear_secondary():
+    plan = QueryPlan(
+        viz_type=VizType.bar_chart,
+        secondary_dimension=Dimension.status,
+        cohorts=[
+            Cohort(label="A", filters=Filters(drug_name="A")),
+            Cohort(label="B", filters=Filters(drug_name="B")),
+        ],
+    )
+    repaired = repair_plan(plan)
+    assert repaired.viz_type == VizType.grouped_bar
+    assert repaired.dimension == Dimension.phase  # default split
+    assert repaired.secondary_dimension is None  # cohorts replace it
+
+
+def test_repair_drops_cohorts_when_fewer_than_two_valid():
+    # one labelled-but-empty cohort -> not a real comparison
+    plan = QueryPlan(
+        viz_type=VizType.grouped_bar,
+        cohorts=[Cohort(label="A", filters=Filters(drug_name="A")), Cohort(label="B")],
+    )
+    repaired = repair_plan(plan)
+    assert repaired.cohorts is None
+    # falls back to a normal grouped bar with a second dimension
+    assert repaired.secondary_dimension is not None
+
+
+def test_repair_validates_cohort_filter_enums():
+    plan = QueryPlan(
+        viz_type=VizType.grouped_bar,
+        dimension=Dimension.phase,
+        cohorts=[
+            Cohort(label="A", filters=Filters(drug_name="A", status=["RECRUITING", "NOPE"])),
+            Cohort(label="B", filters=Filters(drug_name="B")),
+        ],
+    )
+    repaired = repair_plan(plan)
+    assert repaired.cohorts[0].filters.status == ["RECRUITING"]

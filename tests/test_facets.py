@@ -2,7 +2,7 @@ import pytest
 
 from app.clinicaltrials import facet_exec, facets
 from app.clinicaltrials.client import CTGovClient
-from app.schemas import Dimension, Filters, Metric
+from app.schemas import Cohort, Dimension, Filters, Metric
 
 
 def test_facetable_dims():
@@ -43,9 +43,7 @@ async def test_faceted_categorical_builds_exact_rows(monkeypatch):
         return results[: len(param_sets)]
 
     monkeypatch.setattr(CTGovClient, "count_many", fake_count_many)
-    rows, total, notes = await facet_exec.faceted_categorical(
-        CTGovClient(), Filters(condition="x"), Dimension.phase
-    )
+    rows, total, notes = await facet_exec.faceted_categorical(CTGovClient(), Filters(condition="x"), Dimension.phase)
     assert total == 1000
     # sorted desc by count, exact values preserved, citations present
     assert rows[0]["trial_count"] == 400
@@ -56,9 +54,7 @@ async def test_faceted_categorical_builds_exact_rows(monkeypatch):
 @pytest.mark.asyncio
 async def test_faceted_grouped_drops_zero_combos(monkeypatch):
     # 6 phases x 9 statuses = 54 combos + 1 base = 55; make most zero
-    n_combos = len(facets.FACETABLE[Dimension.phase].values) * len(
-        facets.FACETABLE[Dimension.status].values
-    )
+    n_combos = len(facets.FACETABLE[Dimension.phase].values) * len(facets.FACETABLE[Dimension.status].values)
     results = [(500, [])] + [(0, [])] * n_combos
     results[1] = (42, [{"protocolSection": {"identificationModule": {"nctId": "NCT42"}}}])
 
@@ -72,3 +68,46 @@ async def test_faceted_grouped_drops_zero_combos(monkeypatch):
     assert total == 500
     assert len(rows) == 1  # only the one non-zero combo
     assert rows[0]["trial_count"] == 42
+
+
+def test_merge_filters_override_wins():
+    base = Filters(condition="stroke", status=["RECRUITING"])
+    merged = facet_exec.merge_filters(base, Filters(drug_name="Aspirin"))
+    assert merged.condition == "stroke"  # shared constraint preserved
+    assert merged.drug_name == "Aspirin"  # cohort constraint added
+    assert merged.status == ["RECRUITING"]  # empty list in override doesn't clobber
+
+
+def test_can_facet_cohorts_routing():
+    two = [Cohort(label="A", filters=Filters(drug_name="A")), Cohort(label="B")]
+    assert facet_exec.can_facet_cohorts(two, Dimension.phase)
+    assert not facet_exec.can_facet_cohorts(two, Dimension.country)  # not facetable
+    assert not facet_exec.can_facet_cohorts(two[:1], Dimension.phase)  # need >= 2
+
+
+@pytest.mark.asyncio
+async def test_faceted_cohort_comparison_builds_series(monkeypatch):
+    # 2 cohorts x (1 total + 6 phases) = 14 queries, in cohort-major order.
+    def cohort_block(base_total, per_phase):
+        return [(base_total, [])] + [
+            (c, [{"protocolSection": {"identificationModule": {"nctId": f"NCT{c}"}}}]) for c in per_phase
+        ]
+
+    results = cohort_block(300, (5, 40, 80, 100, 50, 25)) + cohort_block(120, (1, 10, 20, 30, 40, 19))
+
+    async def fake_count_many(self, param_sets, sample=3):
+        return results[: len(param_sets)]
+
+    monkeypatch.setattr(CTGovClient, "count_many", fake_count_many)
+    cohorts = [
+        Cohort(label="Aspirin", filters=Filters(drug_name="Aspirin")),
+        Cohort(label="Clopidogrel", filters=Filters(drug_name="Clopidogrel")),
+    ]
+    rows, total, notes = await facet_exec.faceted_cohort_comparison(CTGovClient(), Filters(), cohorts, Dimension.phase)
+    assert total == 420  # 300 + 120 cohort populations
+    assert {r["series"] for r in rows} == {"Aspirin", "Clopidogrel"}
+    # every row carries its series, dimension label, exact count, and citations
+    aspirin_p2 = next(r for r in rows if r["series"] == "Aspirin" and r["phase"] == "Phase 2")
+    assert aspirin_p2["trial_count"] == 80
+    assert aspirin_p2["references"][0]["value"] == "PHASE2"
+    assert any("comparing" in n for n in notes)

@@ -14,12 +14,9 @@ from app.agg import extractors as ex
 from app.agg.citations import build_references
 from app.schemas import EntityType
 
+
 def _site_extractor(study: dict) -> list[tuple[str, str, str]]:
-    locs = (
-        study.get("protocolSection", {})
-        .get("contactsLocationsModule", {})
-        .get("locations", [])
-    )
+    locs = study.get("protocolSection", {}).get("contactsLocationsModule", {}).get("locations", [])
     out, seen = [], set()
     for loc in locs:
         name = loc.get("facility") or loc.get("city")

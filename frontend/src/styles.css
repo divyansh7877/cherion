@@ -419,6 +419,27 @@ header {
 .raw summary {
   cursor: pointer;
 }
+.raw-toolbar {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+.raw-btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 6px 12px;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.raw-btn:hover {
+  border-color: var(--line-2);
+  color: var(--fg);
+  background: var(--hover);
+}
 .raw pre {
   background: var(--panel-2);
   border: 1px solid var(--line);

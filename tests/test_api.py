@@ -63,8 +63,7 @@ async def test_pipeline_faceted_bar_with_mocked_client(monkeypatch):
 
     # one base-total result + one per phase value (6 phases)
     fake_results = [(2890, [])] + [
-        (n, [{"protocolSection": {"identificationModule": {"nctId": f"NCT{n}"}}}])
-        for n in (3, 75, 120, 28, 10, 2)
+        (n, [{"protocolSection": {"identificationModule": {"nctId": f"NCT{n}"}}}]) for n in (3, 75, 120, 28, 10, 2)
     ]
 
     async def fake_count_many(self, param_sets, sample=3):

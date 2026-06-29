@@ -60,24 +60,14 @@ def _status(study: dict) -> list[Triple]:
 
 
 def _sponsor(study: dict) -> list[Triple]:
-    name = (
-        _proto(study)
-        .get("sponsorCollaboratorsModule", {})
-        .get("leadSponsor", {})
-        .get("name")
-    )
+    name = _proto(study).get("sponsorCollaboratorsModule", {}).get("leadSponsor", {}).get("name")
     if not name:
         return []
     return [(name, "protocolSection.sponsorCollaboratorsModule.leadSponsor.name", name)]
 
 
 def _sponsor_class(study: dict) -> list[Triple]:
-    cls = (
-        _proto(study)
-        .get("sponsorCollaboratorsModule", {})
-        .get("leadSponsor", {})
-        .get("class")
-    )
+    cls = _proto(study).get("sponsorCollaboratorsModule", {}).get("leadSponsor", {}).get("class")
     if not cls:
         return []
     return [(cls, "protocolSection.sponsorCollaboratorsModule.leadSponsor.class", cls)]
@@ -91,9 +81,7 @@ def _study_type(study: dict) -> list[Triple]:
 
 
 def _start_year(study: dict) -> list[Triple]:
-    date = (
-        _proto(study).get("statusModule", {}).get("startDateStruct", {}).get("date")
-    )
+    date = _proto(study).get("statusModule", {}).get("startDateStruct", {}).get("date")
     if not date:
         return []
     year = date[:4]
@@ -159,10 +147,7 @@ def duration_days(study: dict) -> int | None:
     """Study duration in days from start to (primary) completion, for scatter."""
     sm = _proto(study).get("statusModule", {})
     start = sm.get("startDateStruct", {}).get("date")
-    end = (
-        sm.get("completionDateStruct", {}).get("date")
-        or sm.get("primaryCompletionDateStruct", {}).get("date")
-    )
+    end = sm.get("completionDateStruct", {}).get("date") or sm.get("primaryCompletionDateStruct", {}).get("date")
     if not start or not end:
         return None
     from datetime import date

@@ -17,16 +17,10 @@ _FIELD = "protocolSection.contactsLocationsModule.locations"
 
 
 def _locations(study: dict) -> list[dict]:
-    return (
-        study.get("protocolSection", {})
-        .get("contactsLocationsModule", {})
-        .get("locations", [])
-    )
+    return study.get("protocolSection", {}).get("contactsLocationsModule", {}).get("locations", [])
 
 
-def aggregate_geo(
-    studies: list[dict], region_key: str = "country", limit: int | None = None
-) -> tuple[dict, list[str]]:
+def aggregate_geo(studies: list[dict], region_key: str = "country", limit: int | None = None) -> tuple[dict, list[str]]:
     """Aggregate trials by region. ``region_key`` is 'country' or 'state'.
 
     Returns ({regions: [...], points: [...]}, notes). ``regions`` drives a
@@ -81,17 +75,12 @@ def aggregate_geo(
                 "label": point_label.get((lat, lon), ""),
                 "trial_count": len(uniq),
                 "total_contributors": len(uniq),
-                "references": [
-                    {"nct_id": n, "field": f"{_FIELD}.geoPoint", "value": f"{lat},{lon}"}
-                    for n in uniq[:5]
-                ],
+                "references": [{"nct_id": n, "field": f"{_FIELD}.geoPoint", "value": f"{lat},{lon}"} for n in uniq[:5]],
             }
         )
     points.sort(key=lambda p: p["trial_count"], reverse=True)
 
-    notes.append(
-        f"Counts are trials with ≥1 site per {region_key}; a trial may appear in multiple regions."
-    )
+    notes.append(f"Counts are trials with ≥1 site per {region_key}; a trial may appear in multiple regions.")
     if missing_region:
         notes.append(f"{missing_region} trials had no site location data.")
     return {"regions": regions, "points": points}, notes

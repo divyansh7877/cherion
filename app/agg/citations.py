@@ -14,8 +14,5 @@ MAX_REFS_PER_DATUM = 5
 
 def build_references(contributors: list[tuple[str, str, str]]) -> list[Reference]:
     """Convert (nct_id, field, value) contributor tuples into capped References."""
-    refs = [
-        Reference(nct_id=nct, field=field, value=value)
-        for nct, field, value in contributors[:MAX_REFS_PER_DATUM]
-    ]
+    refs = [Reference(nct_id=nct, field=field, value=value) for nct, field, value in contributors[:MAX_REFS_PER_DATUM]]
     return refs
