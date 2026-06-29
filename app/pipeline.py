@@ -13,7 +13,7 @@ from app.planner import plan_query
 from app.schemas import Dimension, QueryPlan, VisualizeRequest, VisualizeResponse, VizType
 from app.spec_builder import build_response
 
-_DEFAULT_MAX_RECORDS = 1000
+_DEFAULT_MAX_RECORDS = 3000
 
 
 def _filters_applied(plan: QueryPlan) -> dict:

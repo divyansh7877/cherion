@@ -12,7 +12,7 @@ import type { CitationSelection, OverrideFilters, VisualizeRequest, VisualizeRes
 const DEFAULT_QUERY = "Trials by phase for pembrolizumab";
 
 function buildRequest(query: string, f: OverrideFilters): VisualizeRequest {
-  const req: VisualizeRequest = { query, max_records: 1000 };
+  const req: VisualizeRequest = { query, max_records: 3000 };
   if (f.drug_name) req.drug_name = f.drug_name;
   if (f.condition) req.condition = f.condition;
   if (f.sponsor) req.sponsor = f.sponsor;

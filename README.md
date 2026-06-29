@@ -127,7 +127,7 @@ sampling warning. Example: *trials by phase for breast cancer* counts all 16,541
 trials in ~3s, with example trials cited per bar.
 
 Other viz types (high-cardinality dimensions, time series, histogram, scatter,
-network, geo) aggregate a large sample (up to 1,000 records) and **flag it
+network, geo) aggregate a large sample (up to 3,000 records) and **flag it
 honestly** in `meta.warnings`.
 
 ## Tests
