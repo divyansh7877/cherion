@@ -63,7 +63,8 @@ uvicorn app.main:app --reload --port 8077
 ### Frontend (React + TypeScript + Vite)
 
 The demo is a typed React SPA using **Apache ECharts** (charts + network graph) and
-**Leaflet** (geographic map), with click-to-cite drill-down on every datum.
+**Leaflet** (geographic map), with click-to-cite drill-down on every datum and a
+**Download JSON / Copy** action to export the raw response schema.
 
 ```bash
 cd frontend
@@ -90,6 +91,7 @@ curl -s localhost:8077/visualize -H 'Content-Type: application/json' \
 |---|---|
 | Trials by phase for pembrolizumab | bar_chart |
 | Compare trials by phase and status for breast cancer | grouped_bar |
+| Compare phases for trials involving Aspirin vs Clopidogrel | grouped_bar (cohort comparison) |
 | Number of diabetes trials started each year since 2015 | time_series |
 | Distribution of enrollment size for recruiting lung cancer trials | histogram |
 | Enrollment vs duration for melanoma trials | scatter_plot |
@@ -131,12 +133,56 @@ honestly** in `meta.warnings`.
 ## Tests
 
 ```bash
-pytest -q          # 40 tests over real captured fixtures + mocked API
+pytest -q          # 63 tests over real captured fixtures + mocked API
 ruff check app/
 ```
 
 Tests run against captured ClinicalTrials.gov responses in `tests/fixtures/`, so
 aggregation correctness is checked against real data without network calls.
+
+## Development notes
+
+### Tools used
+
+- **Backend:** Python 3.11, FastAPI, Pydantic v2 (schema validation), `httpx`
+  (async API client), Anthropic Python SDK (forced tool-use for planning).
+- **Frontend:** React 18 + TypeScript + Vite, Apache ECharts (charts + force-layout
+  network graph), Leaflet (geographic map).
+- **Data source:** the public ClinicalTrials.gov v2 REST API — no scraping, no
+  intermediate datastore.
+- **Quality:** `pytest` (unit + end-to-end), `ruff` (lint + format).
+- **AI assistance:** Claude (via Claude Code) was used as a pair-programmer for
+  scaffolding, refactoring, and tests; all architecture decisions, the data model,
+  and the correctness strategy were author-directed and reviewed line by line.
+
+### How correctness was validated
+
+- **No invented numbers by construction.** The LLM only emits a validated
+  `QueryPlan`; every count, sum, and bin is computed in pure Python, so results are
+  reproducible and unit-testable.
+- **Tests against real data.** Aggregation is verified against captured
+  ClinicalTrials.gov responses in `tests/fixtures/`, plus mocked-API tests for the
+  faceted-count and cohort-comparison paths — 63 tests, no network required.
+- **Exact counts cross-checked against the API.** Faceted `countTotal` queries were
+  validated against the totals ClinicalTrials.gov reports for the same filters (e.g.
+  *breast cancer by phase* → all 16,541 trials), confirming the charts reflect the
+  full population rather than a sample.
+- **Honest provenance.** `meta.total_matching_trials` vs `trials_aggregated` and a
+  `warnings` field make any sampling explicit, and every datum carries clickable
+  `nct_id` citations that link back to the source record for manual verification.
+
+### Designed deliberately vs. generated and adapted
+
+- **Deliberately designed** — the parts that define the project:
+  - the *"LLM at the edges, math in the middle"* architecture and the `QueryPlan`
+    intermediate representation;
+  - the single-pipeline routing that covers all viz types without per-query hacks;
+  - the faceted exact-count strategy and the cohort-comparison model;
+  - the deep-citation contract (`nct_id` + field + value) carried end to end;
+  - the response schema ([SCHEMA.md](SCHEMA.md)) as the frontend's typed contract.
+- **Generated then adapted** — assistant-drafted, then reviewed, tightened, and
+  integrated: API-client boilerplate, React component scaffolding and CSS, test
+  fixtures, and documentation prose. Nothing was accepted unread.
 
 ## Layout
 
